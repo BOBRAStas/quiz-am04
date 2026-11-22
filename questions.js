@@ -1,10 +1,10 @@
-// r = réponse correcte (true = Vrai). note = doute sur la correction d'origine.
+// r = réponse correcte (true = Vrai), note = doute sur la correction d'origine.
 const QCMS = {
   "QCM 1": [
     { q: "Une maille cubique est forcément une maille élémentaire", r: true },
     { q: "Toutes les mailles hexagonales sont des mailles primitives", r: true },
     { q: "La dilatation est liée à l'augmentation de la distance moyenne entre deux atomes avec la température", r: true },
-    { q: "Un élément à forte électronégativité à tendance à former des ions chargés négativement", r: false, note: "La correction donne Faux, mais en chimie un élément très électronégatif forme plutôt des anions : à vérifier." },
+    { q: "Un élément à forte électronégativité à tendance à former des ions chargés négativement", r: false, note: "La correction donne Faux, mais en chimie la réponse attendue serait Vrai : à vérifier." },
     { q: "Une transformation eutectoïde n'implique que des phases solides", r: true },
     { q: "Une transformation allotropique est une transformation displacive", r: true },
     { q: "Un refroidissement lent de l'état liquide à l'état solide favorise des structures avec un minimum de défauts", r: true },
@@ -17,7 +17,7 @@ const QCMS = {
   "QCM 2": [
     { q: "Une maille primitive est une maille simple", r: true },
     { q: "Une maille CFC n'est pas une maille élémentaire conventionnelle", r: false },
-    { q: "Dans le modèle des ressorts, le module d'élasticité est proportionnel à la rigidité des liaisons divisé par le carré de la distance d'équilibre interatomique.", r: true },
+    { q: "Dans le modèle des ressorts, le module d'élasticité est proportionnel à la rigidité des liaisons divisé par le carré de la distance d'équilibre interatomique.", r: true, note: "Le calcul direct donne plutôt E = k / r₀ ; la correction indique Vrai : à vérifier avec le cours." },
     { q: "Les métaux appartiennent tous aux blocs s, d et f", r: false },
     { q: "Une transformation péritectoïde implique que des phases solides", r: true },
     { q: "Les transformations displacives ne se produisent que lors des refroidissements suffisamment lents", r: false },
@@ -38,7 +38,7 @@ const QCMS = {
     { q: "La structure diamant est une structure CFC, donc compacte", r: false },
     { q: "La compacité d'un cristal ne peut pas dépasser 0,74", r: false },
     { q: "Un matériau tenace est un matériau dans lequel les fissures ont dû mal à se propager", r: true },
-    { q: "Les dislocations vis sont engagées dans les mécanismes de déformation plastique par cisaillement", r: false, note: "La correction donne Faux, alors que les dislocations vis participent bien au glissement : à vérifier." },
+    { q: "Les dislocations vis sont engagées dans les mécanismes de déformation plastique par cisaillement", r: false, note: "La correction donne Faux, alors que les dislocations vis participent au glissement : à vérifier." },
     { q: "Les matériaux fragiles ont une faible contrainte à la rupture", r: false },
     { q: "Un phénomène thermiquement activé n'est possible que si la température en K est supérieure à la moitié de la température de fusion en K", r: false },
   ],
