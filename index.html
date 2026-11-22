@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz AM04</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --mute:#6b7280; --ok:#16a34a; --ko:#dc2626; --main:#2563eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, Segoe UI, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width:720px; margin:0 auto; padding:24px 16px; }
+  h1 { margin:0 0 16px; font-size:1.5rem; }
+  .card { background:var(--card); border-radius:12px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.1); margin-bottom:16px; }
+  label { display:block; margin:6px 0; cursor:pointer; }
+  button { font:inherit; border:0; border-radius:8px; padding:10px 18px; cursor:pointer; background:var(--main); color:#fff; }
+  button.sec { background:#e5e7eb; color:var(--ink); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+  .row > * { flex:1; }
+  .bar { height:6px; background:#e5e7eb; border-radius:3px; overflow:hidden; margin-bottom:16px; }
+  .bar > div { height:100%; background:var(--main); }
+  .q { font-size:1.15rem; margin:8px 0 20px; line-height:1.4; }
+  .vf button { font-size:1.05rem; }
+  .vf button.ok { background:var(--ok); } .vf button.ko { background:var(--ko); }
+  .fb { margin-top:14px; padding:10px 12px; border-radius:8px; }
+  .fb.ok { background:#dcfce7; color:#166534; } .fb.ko { background:#fee2e2; color:#991b1b; }
+  .note { margin-top:8px; font-size:.9rem; color:#92400e; background:#fef3c7; padding:8px 10px; border-radius:8px; }
+  .meta { color:var(--mute); font-size:.9rem; display:flex; justify-content:space-between; }
+  .score { font-size:2.4rem; font-weight:700; text-align:center; margin:8px 0; }
+  .rev { border-left:4px solid; padding:6px 10px; margin:10px 0; }
+  .rev.ok { border-color:var(--ok); } .rev.ko { border-color:var(--ko); } .rev.skip { border-color:#9ca3af; }
+  small { color:var(--mute); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quiz AM04 – Vrai / Faux</h1>
+  <div id="app"></div>
+</main>
+<script src="questions.js"></script>
+<script>
+const app = document.getElementById("app");
+const STORE = "quizAM04";
+const stats = JSON.parse(localStorage.getItem(STORE) || "{}"); // { texte: {ok, ko} }
+const save = () => localStorage.setItem(STORE, JSON.stringify(stats));
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+let S; // état d'une session
+
+function allQuestions(names) {
+  const seen = new Set(), out = [];
+  for (const n of names) for (const x of QCMS[n]) if (!seen.has(x.q)) { seen.add(x.q); out.push(x); }
+  return out;
+}
+
+function home() {
+  const errCount = allQuestions(Object.keys(QCMS)).filter(x => stats[x.q]?.ko).length;
+  app.innerHTML = `
+  <div class="card">
+    <b>Sources</b>
+    ${Object.keys(QCMS).map(n => `<label><input type="checkbox" name="src" value="${n}" checked> ${n} <small>(${QCMS[n].length} questions)</small></label>`).join("")}
+    <label><input type="checkbox" id="errOnly" ${errCount ? "" : "disabled"}> Seulement mes questions ratées <small>(${errCount})</small></label>
+  </div>
+  <div class="card">
+    <b>Mode</b>
+    <label><input type="radio" name="mode" value="train" checked> Entraînement : correction immédiate</label>
+    <label><input type="radio" name="mode" value="exam"> Examen : +0,25 / 0 / −0,25, correction à la fin</label>
+    <label><input type="checkbox" id="shuf" checked> Mélanger les questions</label>
+    <label>Nombre de questions : <input type="number" id="nb" min="1" value="12" style="width:70px"></label>
+  </div>
+  <div class="row"><button id="go">Commencer</button><button class="sec" id="reset">Réinitialiser mes stats</button></div>`;
+  document.getElementById("go").onclick = start;
+  document.getElementById("reset").onclick = () => { if (confirm("Effacer les statistiques ?")) { for (const k in stats) delete stats[k]; save(); home(); } };
+}
+
+function start() {
+  const names = [...document.querySelectorAll("input[name=src]:checked")].map(e => e.value);
+  let qs = allQuestions(names);
+  if (document.getElementById("errOnly").checked) qs = qs.filter(x => stats[x.q]?.ko);
+  if (!qs.length) return alert("Aucune question disponible avec cette sélection.");
+  if (document.getElementById("shuf").checked) qs = shuffle(qs);
+  const nb = Math.max(1, parseInt(document.getElementById("nb").value) || qs.length);
+  S = { qs: qs.slice(0, nb), i: 0, ans: [], mode: document.querySelector("input[name=mode]:checked").value, done: false };
+  question();
+}
+
+function question() {
+  const { qs, i, mode } = S, x = qs[i];
+  app.innerHTML = `
+  <div class="bar"><div style="width:${(i / qs.length) * 100}%"></div></div>
+  <div class="card">
+    <div class="meta"><span>Question ${i + 1} / ${qs.length}</span><span>${mode === "exam" ? "Examen" : "Entraînement"}</span></div>
+    <div class="q">${x.q}</div>
+    <div class="row vf"><button data-v="true">Vrai</button><button data-v="false">Faux</button></div>
+    <div id="fb"></div>
+    <div class="row">
+      <button class="sec" id="skip">Passer${mode === "exam" ? " (0 pt)" : ""}</button>
+      <button class="sec" id="quit">Abandonner</button>
+    </div>
+  </div>`;
+  app.querySelectorAll(".vf button").forEach(b => b.onclick = () => answer(b.dataset.v === "true"));
+  document.getElementById("quit").onclick = home;
+  document.getElementById("skip").onclick = () => answer(null);
+}
+
+function answer(v) {
+  const x = S.qs[S.i];
+  S.ans[S.i] = v;
+  if (S.mode === "exam") return next();
+  const good = v === x.r;
+  if (v !== null) {
+    const st = stats[x.q] ||= { ok: 0, ko: 0 };
+    good ? st.ok++ : st.ko++;
+    save();
+  }
+  document.getElementById("skip").disabled = true;
+  app.querySelectorAll(".vf button").forEach(b => {
+    b.disabled = true;
+    const bv = b.dataset.v === "true";
+    if (bv === x.r) b.classList.add("ok"); else if (bv === v) b.classList.add("ko");
+  });
+  document.getElementById("fb").innerHTML =
+    `<div class="fb ${good ? "ok" : "ko"}">${v === null ? "Passée" : good ? "Correct" : "Faux"} : la réponse est <b>${x.r ? "Vrai" : "Faux"}</b>.</div>` +
+    (x.note ? `<div class="note">${x.note}</div>` : "") +
+    `<div class="row"><button id="next">${S.i + 1 < S.qs.length ? "Suivant" : "Résultats"}</button></div>`;
+  document.getElementById("next").onclick = next;
+}
+
+function next() {
+  if (++S.i < S.qs.length) question(); else results();
+}
+
+function results() {
+  if (S.mode === "exam") {
+    S.qs.forEach((x, i) => {
+      if (S.ans[i] == null) return;
+      const st = stats[x.q] ||= { ok: 0, ko: 0 };
+      S.ans[i] === x.r ? st.ok++ : st.ko++;
+    });
+    save();
+  }
+  const pts = S.qs.reduce((s, x, i) => s + (S.ans[i] == null ? 0 : S.ans[i] === x.r ? 0.25 : -0.25), 0);
+  const nOk = S.qs.filter((x, i) => S.ans[i] === x.r).length;
+  const max = S.qs.length * 0.25;
+  app.innerHTML = `
+  <div class="card">
+    <div class="score">${nOk} / ${S.qs.length}</div>
+    <div style="text-align:center">${S.mode === "exam" ? `Note : <b>${pts.toFixed(2)}</b> / ${max.toFixed(2)} (${(Math.max(0, pts) / max * 20).toFixed(1)} / 20)` : "Entraînement terminé"}</div>
+    <div class="row"><button id="retry">Rejouer les erreurs</button><button class="sec" id="home">Accueil</button></div>
+  </div>
+  <div class="card"><b>Revue</b>
+    ${S.qs.map((x, i) => {
+      const a = S.ans[i], c = a == null ? "skip" : a === x.r ? "ok" : "ko";
+      return `<div class="rev ${c}">${x.q}<br><small>Ta réponse : ${a == null ? "—" : a ? "Vrai" : "Faux"} · Bonne réponse : <b>${x.r ? "Vrai" : "Faux"}</b></small>${x.note ? `<div class="note">${x.note}</div>` : ""}</div>`;
+    }).join("")}
+  </div>`;
+  document.getElementById("home").onclick = home;
+  const wrong = S.qs.filter((x, i) => S.ans[i] !== x.r);
+  const retry = document.getElementById("retry");
+  if (!wrong.length) retry.disabled = true;
+  retry.onclick = () => { S = { qs: shuffle(wrong), i: 0, ans: [], mode: S.mode }; question(); };
+}
+
+home();
+</script>
+</body>
+</html>
